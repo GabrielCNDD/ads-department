@@ -25,24 +25,30 @@
   },
   "targets": {
     "target_roas": 3.0,
-    "target_poas": 0,
+    "target_poas": 1.2,
     "target_cpa": 0,
-    "aov": 0,
-    "cogs_pct": 0,
-    "shipping_cost": 0,
-    "margin_pct": 0,
-    "max_ad_spend_pct_of_margin": 20,
     "break_even_roas": 0,
+    "aov": 0,
     "monthly_budget_cap": 0
   },
   "unit_economics": {
-    "_comment": "Fill this to enable POAS (Profit on Ad Spend) calculations",
-    "product_cost_pct": 0,
+    "_comment": "Fill to enable POAS. POAS = (Revenue - COGS - Shipping - Returns) / Ad Spend",
+    "cogs_pct": 0,
     "shipping_per_order": 0,
     "packaging_per_order": 0,
     "payment_processing_pct": 2.5,
     "return_rate_pct": 0,
     "contribution_margin_pct": 0
+  },
+  "caps": {
+    "daily_scaling_limit_pct": 20,
+    "weekly_scaling_limit_pct": 40,
+    "hours_between_scaling": 72
+  },
+  "exclusions": {
+    "past_purchasers_days": 180,
+    "web_visitors_days_for_cold": 30,
+    "_comment": "Cold campaigns must exclude these audiences to prevent paying for existing customers"
   },
   "auto_approve": {
     "enabled": false,

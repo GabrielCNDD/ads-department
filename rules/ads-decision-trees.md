@@ -30,7 +30,15 @@ Before proposing any change to any ad account:
    - _Note: "ROAS > 2x" is the default if no target_roas is set. But a client with target_roas: 4.0 needs ROAS > 4.8 to be protected, while a volume client with target_roas: 1.5 is protected at ROAS > 1.8._
 9. Calculate the cost of any proposed change: "If we pause X, we lose Y RON/day"
 10. Calculate **MER (Marketing Efficiency Ratio):** `Total Shopify Revenue ÷ Total Ad Spend (all platforms)`. This is the CEO metric — the one number that tells you if the ads department is making or losing money overall.
-11. Check: is this account in a working state? If yes, tread carefully.
+11. If `unit_economics` is filled in config.json, calculate **POAS (Profit on Ad Spend):**
+    ```
+    POAS = (Revenue - COGS - Shipping - Returns) ÷ Ad Spend
+    ```
+    - POAS > 1.2 = healthy, campaign is genuinely profitable after all costs
+    - POAS 1.0-1.2 = break-even zone, watch closely
+    - POAS < 1.0 = losing money on every sale, the campaign is subsidizing customers
+    - _POAS is the real metric. ROAS can be 3x but if margins are 25% and shipping eats another 10%, you're barely breaking even._
+12. Check: is this account in a working state? If yes, tread carefully.
 
 **If Step 0 reveals the account is profitable and stable:**
 - Default to adding alongside, not replacing
@@ -280,7 +288,7 @@ If scaling fails (CPA rises after increase):
 10. Protected campaigns: mark profitable ones, do NOT propose changes to them
 11. Present: what's working (protect), what's wasting (fix), what's missing (add)
 
-### MA-7: Creative Sandbox (Test → Graduate → Scale)
+### MA-7: Creative Sandbox & Graduation (Test → Graduate → Scale)
 
 **Trigger:** "Test new creatives" / "We have new product images" / "Creative fatigue on winners"
 
@@ -293,25 +301,42 @@ SANDBOX CAMPAIGN (10-15% of total Meta budget)
 ├── New creatives dropped here
 ├── Strict kill/graduate rules below
 └── Winners get promoted to main Scaling campaigns
+
+SCALING CAMPAIGN (Protected — strict rules, slow changes)
+├── Only graduated creatives live here
+├── Budget changes follow MA-3 (20/20 rule)
+└── High stability expected
 ```
 
-#### Testing Protocol:
+#### Phase 1: Testing Protocol
 1. Each new creative gets **72 hours** and **3× AOV in spend** before judgment
 2. **Kill criteria** (auto-pause after test period):
    - Hook rate < 25% (3-second video views ÷ impressions)
    - Outbound CTR < 1%
    - CPA > 1.5× account average
-3. **Graduate criteria** (promote to scaling campaign):
-   - CPA < account average CPA over 7 days
-   - CTR > account average
-   - 3+ conversions in test period
-4. **Graduation process:**
-   - Duplicate the winning creative into the main scaling ad set
-   - Do NOT move it — copy it. The sandbox ad stays for comparison.
-   - The main campaign's learning phase is not disrupted because you're adding, not replacing.
+3. **Graduate criteria** — a creative must hit ALL THREE over a **7-day window**:
+   - **Efficiency:** Shopify-verified CPA < account target CPA (from config.json)
+   - **Volume:** Spent at least 3× AOV (ensures result isn't a statistical fluke)
+   - **Retention:** Hold rate (video plays at 15s ÷ 3s starts) in top 25% of account historical average. For static ads: CTR > account average.
+
+#### Phase 2: Graduation Process
+1. **Duplicate** the winning creative into the relevant Scaling/Protected campaign
+2. **Identify the anchor:** Find the lowest-performing ad currently in the Scaling campaign (30-day ROAS)
+3. **The swap:** Pause the anchor, enable the graduate simultaneously
+4. **Observation:** Monitor for 48 hours. If the Scaling campaign's overall CPA rises >20%, revert immediately (use XP-6 Rollback)
+5. **Do NOT move** the creative — copy it. The sandbox ad stays for comparison data.
 
 #### Why:
-Dropping an unproven creative into a 4x ROAS campaign can reset its learning phase and tank efficiency for days. The sandbox isolates the risk.
+Dropping an unproven creative into a 4x ROAS campaign can reset its learning phase and tank efficiency for days. The sandbox isolates the risk. Testing and scaling are structurally separated — Campaign A is chaos (expected), Campaign B is stability (protected).
+
+#### Universal Guardrails:
+
+| Feature | Logic | Purpose |
+|---------|-------|---------|
+| Stock logic | If inventory < 5 units → pause ad | Prevents paying for clicks on out-of-stock items |
+| Link safety | If URL ≠ 200 → emergency pause (XP-5) | Prevents burning budget on 404 pages |
+| Scaling cap | Max 20% increase / 72 hours | Keeps algorithm out of learning phase shock |
+| Truth source | Shopify > GA4 > Meta/Google | Eliminates double-counting and platform inflation |
 
 ---
 

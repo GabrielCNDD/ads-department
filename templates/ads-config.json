@@ -1,0 +1,36 @@
+{
+  "client": "",
+  "platforms": {
+    "google": {
+      "max_daily_budget": 100,
+      "currency": "RON",
+      "account_id": "",
+      "mcc_id": "",
+      "merchant_center_id": ""
+    },
+    "meta": {
+      "max_daily_budget": 100,
+      "currency": "RON",
+      "account_id": "",
+      "pixel_id": "",
+      "page_id": "",
+      "catalog_id": ""
+    },
+    "tiktok": {
+      "max_daily_budget": 0,
+      "currency": "RON",
+      "account_id": "",
+      "pixel_id": ""
+    }
+  },
+  "targets": {
+    "target_roas": 3.0,
+    "target_cpa": 0,
+    "aov": 0,
+    "margin_pct": 0,
+    "max_ad_spend_pct_of_margin": 20
+  },
+  "protected_campaigns": [],
+  "blocked_operations": [],
+  "notes": ""
+}

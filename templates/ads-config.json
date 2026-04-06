@@ -25,10 +25,35 @@
   },
   "targets": {
     "target_roas": 3.0,
+    "target_poas": 0,
     "target_cpa": 0,
     "aov": 0,
+    "cogs_pct": 0,
+    "shipping_cost": 0,
     "margin_pct": 0,
-    "max_ad_spend_pct_of_margin": 20
+    "max_ad_spend_pct_of_margin": 20,
+    "break_even_roas": 0,
+    "monthly_budget_cap": 0
+  },
+  "unit_economics": {
+    "_comment": "Fill this to enable POAS (Profit on Ad Spend) calculations",
+    "product_cost_pct": 0,
+    "shipping_per_order": 0,
+    "packaging_per_order": 0,
+    "payment_processing_pct": 2.5,
+    "return_rate_pct": 0,
+    "contribution_margin_pct": 0
+  },
+  "auto_approve": {
+    "enabled": false,
+    "max_budget_increment_pct": 15,
+    "max_daily_risk_eur": 50,
+    "min_roas_above_target_pct": 20
+  },
+  "seasonality": {
+    "peak_months": [],
+    "low_months": [],
+    "client_events": []
   },
   "protected_campaigns": [],
   "blocked_operations": [],

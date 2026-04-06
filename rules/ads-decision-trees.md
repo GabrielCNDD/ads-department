@@ -137,8 +137,9 @@ Before proposing any change to any ad account:
 6. Bidding strategy alignment: Manual CPC on high-volume campaigns → propose upgrade
 7. Feed quality (Shopping/PMax): disapprovals, missing attributes
 8. **PMax cannibalization check:** Compare Brand Search volume before/after PMax. If Brand Search dropped >20%, PMax is stealing high-intent traffic. Propose brand negatives in PMax.
-9. Account structure: duplicate campaigns, overlapping keywords, orphaned ad groups
-10. Present findings in priority order: tracking > cannibalization > wasted spend > QS > bidding > structure
+9. **Exclusion hygiene check:** All Non-Brand Search and Shopping campaigns should exclude brand terms as negatives (brand traffic belongs in Brand Search, not generic). All PMax should exclude brand terms if a dedicated Brand Search campaign exists.
+10. Account structure: duplicate campaigns, overlapping keywords, orphaned ad groups
+11. Present findings in priority order: tracking > cannibalization > exclusions > wasted spend > QS > bidding > structure
 
 ---
 
@@ -268,12 +269,49 @@ If scaling fails (CPA rises after increase):
 2. Learning phase: how many ad sets are stuck in learning?
 3. Creative fatigue: frequency >5.0 on any active ad?
 4. Audience overlap: check with Meta's tool — overlapping ad sets waste budget
-5. DPA catalog health: all products active? Prices correct? Images loading?
-6. CAPI status: server-side events firing?
-7. Attribution: Meta-reported vs Shopify — what's the gap?
-8. Structure: too many campaigns? Unnecessary ad sets? Budget fragmentation?
-9. Protected campaigns: mark profitable ones, do NOT propose changes to them
-10. Present: what's working (protect), what's wasting (fix), what's missing (add)
+5. **Exclusion hygiene check:** All COLD/Prospecting campaigns MUST exclude:
+   - Past 180-day purchasers (via Klaviyo/Shopify custom audience sync)
+   - Recent website visitors 30D (they belong in WARM/HOT, not COLD)
+   - If exclusions are missing or audience size is 0: flag as wasted spend risk. Meta will serve to existing customers because they're easiest to convert — inflates platform ROAS while doing nothing for growth.
+6. DPA catalog health: all products active? Prices correct? Images loading?
+7. CAPI status: server-side events firing?
+8. Attribution: Meta-reported vs Shopify — what's the gap?
+9. Structure: too many campaigns? Unnecessary ad sets? Budget fragmentation?
+10. Protected campaigns: mark profitable ones, do NOT propose changes to them
+11. Present: what's working (protect), what's wasting (fix), what's missing (add)
+
+### MA-7: Creative Sandbox (Test → Graduate → Scale)
+
+**Trigger:** "Test new creatives" / "We have new product images" / "Creative fatigue on winners"
+
+**The rule:** New creatives are NEVER injected directly into Protected Campaigns. They must graduate from a dedicated Sandbox first.
+
+#### Structure:
+```
+SANDBOX CAMPAIGN (10-15% of total Meta budget)
+├── Test Ad Set — broad targeting, same as cold
+├── New creatives dropped here
+├── Strict kill/graduate rules below
+└── Winners get promoted to main Scaling campaigns
+```
+
+#### Testing Protocol:
+1. Each new creative gets **72 hours** and **3× AOV in spend** before judgment
+2. **Kill criteria** (auto-pause after test period):
+   - Hook rate < 25% (3-second video views ÷ impressions)
+   - Outbound CTR < 1%
+   - CPA > 1.5× account average
+3. **Graduate criteria** (promote to scaling campaign):
+   - CPA < account average CPA over 7 days
+   - CTR > account average
+   - 3+ conversions in test period
+4. **Graduation process:**
+   - Duplicate the winning creative into the main scaling ad set
+   - Do NOT move it — copy it. The sandbox ad stays for comparison.
+   - The main campaign's learning phase is not disrupted because you're adding, not replacing.
+
+#### Why:
+Dropping an unproven creative into a 4x ROAS campaign can reset its learning phase and tank efficiency for days. The sandbox isolates the risk.
 
 ---
 
@@ -323,7 +361,35 @@ Answer these questions:
 5. **What's the rollback plan?** How to undo if it fails?
 6. **Does this touch a protected campaign?** If yes, extra scrutiny
 
-### XP-4: Emergency Red Alert
+### XP-4: Monthly Pacing & Run-Rate
+
+**Trigger:** 15th of every month / "Are we on budget?" / mid-month check
+
+A campaign crushing it at 4x ROAS will get scaled 20% every 3 days. By the 18th, you've exhausted the client's monthly cash flow.
+
+#### The Check:
+```
+Run-rate = (Spend to date ÷ Day of month) × Days in month
+Monthly cap = config.json monthly budget (or daily × 30)
+Pacing % = Run-rate ÷ Monthly cap × 100
+```
+
+#### Decision:
+- **Pacing 90-110%:** On track. No action.
+- **Pacing > 110%:** Over-pacing. Flag to Gabriel:
+  - Option A: Approve budget extension (client can afford it)
+  - Option B: Reduce daily budgets proportionally to finish the month on target
+- **Pacing < 80%:** Under-pacing. Investigate:
+  - Delivery issues? Check impression share, learning status
+  - Seasonal dip? Check seasonality context
+  - Don't panic-scale to "catch up" — that violates the 20% rule
+
+#### Automate:
+Run this check on the 10th and 20th of each month as part of standard operations. Log result to CHANGELOG.
+
+---
+
+### XP-5: Emergency Red Alert
 
 **Trigger:** Technical failure, tracking loss, or "black swan" performance drops.
 
@@ -346,6 +412,57 @@ Answer these questions:
 
 ---
 
+### XP-6: Standardized Rollback Procedure
+
+**Trigger:** A change was made and performance immediately drops. Need to undo.
+
+**The rule:** When reverting, restore the exact previous state. No "tweaking" the old setup — exact 1:1 restoration.
+
+#### Rollback Steps:
+1. Open `ads/CHANGELOG.md` — find the entry for the change being reverted
+2. Read the **prior state** documented in the entry (this is why we log "before" values)
+3. Push the exact previous settings via API:
+   - If budget was changed: restore exact previous amount
+   - If bidding was changed: restore exact previous strategy + bids
+   - If ad was paused: re-enable it
+   - If ad was created: pause it (don't delete — data)
+4. Log the rollback to CHANGELOG: "ROLLBACK — reverted [change] to previous state. Reason: [what went wrong]"
+5. Wait 24-48h for the algorithm to re-stabilize at the old settings
+6. **Do NOT** try to "optimize" during the rollback recovery period. The goal is to get back to the known-good state, not to improve it.
+
+#### Why:
+When performance drops after a change, the instinct is to make another change to fix it. This compounds the problem — now you have two variables moving. Rollback first, stabilize, then diagnose.
+
+---
+
+### Gate 4 Auto-Approve Threshold
+
+**For small, low-risk changes, the agent can execute without waiting for Gabriel's approval.**
+
+A change is auto-approved if ALL of these are true:
+- Budget increment is under 15%
+- Total financial risk is under 50 EUR/day
+- Campaign ROAS is 20% above target (well into profitable territory)
+- The change is reversible
+- No protected campaign is being modified
+
+**Auto-approved actions:**
+- Adding negative keywords to campaigns with >10% wasted spend
+- Pausing ads with CTR < 0.5% after 1000+ impressions and 0 conversions
+- Budget increases < 15% on campaigns with ROAS > 1.2× target
+- Adding new creatives to the Sandbox campaign
+
+**Always requires approval:**
+- Any change to a protected campaign
+- Budget changes > 15%
+- Bidding strategy changes
+- Pausing any active entity
+- Creating new campaigns or ad sets
+
+**Logging:** Auto-approved actions are logged to CHANGELOG with "AUTO-APPROVED" tag. Gabriel reviews the log, not each individual action.
+
+---
+
 ## Quick Reference: Which Workflow?
 
 | User wants to... | Workflow | Platform |
@@ -361,7 +478,10 @@ Answer these questions:
 | Full audit | GA-6 / MA-6 | Google / Meta |
 | Monthly review | XP-1 + XP-2 | Cross-platform |
 | Propose any change | XP-3 | All |
-| Tracking down / page 404 / budget runaway | XP-4 (Red Alert) | All — auto-pause allowed |
+| Test new creatives | MA-7 (Sandbox) | Meta |
+| Mid-month budget check | XP-4 (Pacing) | Cross-platform |
+| Tracking down / page 404 / budget runaway | XP-5 (Red Alert) | All — auto-pause allowed |
+| Undo a change | XP-6 (Rollback) | All |
 
 ## Quick Reference: Safety Limits
 

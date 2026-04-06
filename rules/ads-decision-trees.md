@@ -13,12 +13,24 @@ Before proposing any change to any ad account:
 
 1. Read project's `ads/config.json` — budget caps, targets, account IDs
 2. Read project's `ads/learnings.md` — past mistakes and wins for this client
-3. Pull last 30 days performance for ALL active campaigns (all platforms)
-4. Pull Shopify revenue by source for the same period
-5. Cross-reference: platform-reported revenue vs Shopify-attributed revenue
-6. Identify **protected campaigns** (ROAS > 2x, spending consistently, 10+ conversions)
-7. Calculate the cost of any proposed change: "If we pause X, we lose Y RON/day"
-8. Check: is this account in a working state? If yes, tread carefully.
+3. **Seasonality & external context check (Gate 0.5):**
+   - What is today's date? Is it within 7 days of a major shopping event?
+   - Client-specific events: check PROJECT-CONTEXT.md for seasonality notes
+   - Common RO events: Black Friday (Nov), Easter, Back to School (Sep), Craciun (Dec)
+   - **If within a seasonal window:** prioritize last 7 days over 30-day averages for scaling/bidding decisions. The 30-day lookback includes "normal" days that are no longer relevant during peaks.
+   - **If post-seasonal:** don't panic at declining metrics — return to baseline is normal.
+4. Pull last 30 days performance for ALL active campaigns (all platforms)
+5. Pull Shopify revenue by source for the same period
+6. Cross-reference: platform-reported revenue vs Shopify-attributed revenue
+7. **Verify attribution windows match:** Google and Meta must use the same window (7-day click recommended) for the cross-platform comparison table to be valid. Note any mismatches.
+8. Identify **protected campaigns** — a campaign is protected if:
+   - Shopify-verified ROAS > 1.2× the `target_roas` in `ads/config.json`
+   - Spending consistently (no 0-spend days in last 14 days)
+   - 10+ conversions in last 30 days
+   - _Note: "ROAS > 2x" is the default if no target_roas is set. But a client with target_roas: 4.0 needs ROAS > 4.8 to be protected, while a volume client with target_roas: 1.5 is protected at ROAS > 1.8._
+9. Calculate the cost of any proposed change: "If we pause X, we lose Y RON/day"
+10. Calculate **MER (Marketing Efficiency Ratio):** `Total Shopify Revenue ÷ Total Ad Spend (all platforms)`. This is the CEO metric — the one number that tells you if the ads department is making or losing money overall.
+11. Check: is this account in a working state? If yes, tread carefully.
 
 **If Step 0 reveals the account is profitable and stable:**
 - Default to adding alongside, not replacing
@@ -109,22 +121,24 @@ Before proposing any change to any ad account:
 3. For Shopping: segment by product price tier (different bids for different margins)
 4. For PMax: check asset group ad strength, need minimum diversity:
    - 5+ headlines (30 char), 5+ descriptions (90 char), 5+ images, 1+ logo
-5. Cross-reference PMax with Search — is PMax cannibalizing brand traffic?
-6. Budget: PMax needs higher minimum (50 RON/day absolute minimum for RO market)
+5. **Cannibalization check (CRITICAL):** Compare Brand Search conversion volume before and after PMax launch. If Brand Search volume dropped >20% since PMax went live, PMax is likely cannibalizing high-intent traffic that would have converted cheaper through Search. **Action:** Add brand terms as negative keywords in PMax, or pause PMax and let Brand Search recapture that traffic.
+6. Cross-reference PMax network breakdown: `segments.ad_network_type` shows SEARCH vs CONTENT vs YOUTUBE vs MIXED. If most PMax spend is on SEARCH, it's competing with your Search campaigns.
+7. Budget: PMax needs higher minimum (50 RON/day absolute minimum for RO market)
 
 ### GA-6: Account Audit
 
 **Trigger:** "Audit the Google account" / periodic review
 
-1. Step 0 — full baseline
+1. Step 0 — full baseline (including seasonality check and MER)
 2. Check conversion tracking: Ads conversions vs GA4 vs Shopify
 3. Wasted spend: search terms with cost + 0 conversions → propose negatives
 4. Quality scores: keywords below 5 → investigate ad relevance + landing page
 5. Impression share: if < 50% on brand terms → bids too low
 6. Bidding strategy alignment: Manual CPC on high-volume campaigns → propose upgrade
 7. Feed quality (Shopping/PMax): disapprovals, missing attributes
-8. Account structure: duplicate campaigns, overlapping keywords, orphaned ad groups
-9. Present findings in priority order: tracking > wasted spend > QS > bidding > structure
+8. **PMax cannibalization check:** Compare Brand Search volume before/after PMax. If Brand Search dropped >20%, PMax is stealing high-intent traffic. Propose brand negatives in PMax.
+9. Account structure: duplicate campaigns, overlapping keywords, orphaned ad groups
+10. Present findings in priority order: tracking > cannibalization > wasted spend > QS > bidding > structure
 
 ---
 
@@ -180,15 +194,32 @@ _Reference: ads-platform-specifics.md for detailed Meta safety rules._
 
 **Trigger:** "Scale Meta" / "Increase Meta budget" / "This campaign is doing well"
 
-1. Verify the campaign is actually profitable (Shopify-verified, not just Meta-reported)
-2. Check stability: profitable for 7+ consecutive days, not just a spike
-3. Check learning status: must be stable (not "Learning" or "Learning Limited")
-4. Scale in 20% increments every 3-4 days
-5. **BLOCKED:** >40% increase in one step
-6. **BLOCKED:** scaling + restructuring in the same change
-7. Budget split: 70% on proven campaigns, 30% on testing
-8. After scaling: monitor for 48h before next increase
-9. If CPA rises >30% after scaling: pause the increase, let it stabilize
+#### Step 1: The "Profit Floor" Verification
+1. **Shopify truth check:** Verify the campaign has been profitable (Shopify-verified ROAS > target_roas from config.json) for at least **7 consecutive days**. Not a spike — sustained profit.
+2. **Stability check:** Ad set must be in "Active" state (not "Learning" or "Learning Limited").
+3. **EXCEPTION:** If status is "Learning Limited" AND the budget increase is specifically calculated to push it past the 50-conversion threshold — this is allowed. Document the math.
+
+#### Step 2: The Scaling Math (20/20 Rule)
+1. **Incremental cap:** Maximum 20% budget increase per step.
+2. **Temporal cap:** Wait minimum **48-72 hours** between increases. The algorithm needs time to stabilize at the new "auction temperature."
+3. **Anti-shock rule:** Total budget increases must not exceed **40% within a single 7-day window**.
+4. **Budget split:** 70% on proven campaigns, 30% on testing.
+5. **BLOCKED:** scaling + restructuring in the same change.
+
+#### Step 3: The "Revenue at Risk" Pitch (Gate 4)
+Present to Gabriel with these exact numbers:
+- **Current state:** "This campaign generates **X RON/day** at **Y ROAS** (Shopify-verified)."
+- **The proposal:** "Increase budget from **A** to **B** (20% increase)."
+- **Revenue at risk:** "If the algorithm resets and performance drops to account average, we risk **Z RON/day** in existing profit."
+- **The kill switch:** "If CPA rises >30% over the next 48h, we revert to previous budget."
+
+#### Step 4: The ROAS-vs-Volume Decision
+If scaling fails (CPA rises after increase):
+1. **First move:** Revert budget to pre-increase level. Don't lower bids.
+2. **Diagnose:** Is the issue auction saturation (CPM rising) or creative fatigue (CTR dropping)?
+3. **If CPM rising:** The audience is tapped at this budget. Add new creative or expand audience before retrying.
+4. **If CTR dropping:** Creative fatigue. Refresh creatives first, then retry scaling.
+5. **Never:** Lower bids to compensate for failed scaling. That just gets worse delivery at worse quality.
 
 ### MA-4: Creative Strategy
 
@@ -266,7 +297,8 @@ _Reference: ads-platform-specifics.md for detailed Meta safety rules._
 5. Both platforms will over-report (they both claim credit for the same purchase)
 6. Shopify order data is the ground truth for revenue
 7. GA4 is the ground truth for on-site behavior (with GDPR caveat)
-8. Present: true ROAS per platform, true CPA per platform, budget efficiency
+8. Calculate **MER (Marketing Efficiency Ratio):** `Total Shopify Revenue ÷ Total Ad Spend`. This is the single number that tells you if the ads department is profitable overall. MER > 3x is healthy for ecommerce. Present this alongside per-platform ROAS.
+9. Present: true ROAS per platform, true CPA per platform, MER, budget efficiency
 
 ### XP-2: Budget Allocation Across Platforms
 
@@ -291,6 +323,27 @@ Answer these questions:
 5. **What's the rollback plan?** How to undo if it fails?
 6. **Does this touch a protected campaign?** If yes, extra scrutiny
 
+### XP-4: Emergency Red Alert
+
+**Trigger:** Technical failure, tracking loss, or "black swan" performance drops.
+
+**This is the ONLY workflow where the agent can act without Gabriel's prior approval.**
+
+#### Auto-Pause Triggers (act first, notify immediately):
+1. **Tracking failure:** Shopify reports 0 orders from a source (Meta/Google) for 12+ hours while the platform reports >500 RON spend. → PAUSE affected campaigns. Log to CHANGELOG: "EMERGENCY PAUSE — tracking loss detected."
+2. **Landing page down:** Destination URL returns 404 or 500 error. → PAUSE ALL campaigns pointing to that URL immediately. Log: "EMERGENCY PAUSE — landing page [URL] returning [status code]."
+3. **Budget runaway:** Campaign spend exceeds 3x daily budget in a single day (platform glitch). → PAUSE the campaign. Log: "EMERGENCY PAUSE — spend anomaly."
+
+#### Investigate-First Triggers (flag to Gabriel, don't auto-pause):
+4. **CPA spike:** CPA rises >100% compared to 7-day average across all campaigns. → Flag as urgent, present data, recommend pause.
+5. **Zero conversions:** 48+ hours of spend with zero Shopify-verified conversions across entire account. → Flag as urgent, check tracking first.
+
+#### After Any Emergency:
+1. Log the full incident to `ads/CHANGELOG.md` with timestamp, action taken, reason
+2. Notify Gabriel immediately with: what happened, what was paused, estimated revenue protected
+3. Do NOT re-enable without Gabriel's approval
+4. Investigate root cause before any campaigns go back live
+
 ---
 
 ## Quick Reference: Which Workflow?
@@ -308,3 +361,15 @@ Answer these questions:
 | Full audit | GA-6 / MA-6 | Google / Meta |
 | Monthly review | XP-1 + XP-2 | Cross-platform |
 | Propose any change | XP-3 | All |
+| Tracking down / page 404 / budget runaway | XP-4 (Red Alert) | All — auto-pause allowed |
+
+## Quick Reference: Safety Limits
+
+| Action | Limit | Reason |
+|--------|-------|--------|
+| Scaling | Max 20% per step, 40% per 7-day window | Avoids re-entering learning phase |
+| New ad sets | (Total Budget ÷ CPP × 50) / 7 | Prevents starving ad sets of data |
+| Broad Match | BLOCKED on Manual CPC | Prevents uncontrolled wasted spend |
+| Protected status | ROAS > 1.2× client target (or > 2x default) | Prevents restructuring what works |
+| Emergency pause | Auto-allowed for tracking loss / 404 / budget runaway | Protects client capital |
+| Budget increase | Needs 7 days profitable + 48h between steps | Ensures stable profit floor |
